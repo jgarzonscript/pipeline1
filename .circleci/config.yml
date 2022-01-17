@@ -1,18 +1,55 @@
 version: 2.1
 orbs:
   # orgs contain basc recipes and reproducible actions (install node, aws, etc.)
-  node: circleci/node@4.1.0
+  # node: circleci/node@4.1.0
+  node: circleci/node@5.0.0
+  aws-cli: circleci/aws-cli@2.0 
   # different jobs are calles later in the workflows sections
 jobs:
-  build:
+  one: # first test job
     docker:
-      # the base image can run most needed actions with orbs
+      - image: cimg/base:stable
+    # executor: aws-cli/default
+    steps:
+        - node/install
+        - checkout
+        - aws-cli/setup:
+            profile-name: jon_s3
+        - run:
+            name: npm install front-end
+            command: |
+              npm run frontend:install
+        - run:
+            name: front-end build...
+            command: |
+              npm run frontend:build
+        - run:
+            name: deploy via aws s3
+            command: |
+              # aws --version
+              # node -v
+              # aws s3 ls s3://jonsbucket333/
+              npm run frontend:deploy
+  two: # second test job
+    docker:
       - image: "cimg/base:stable"
     steps:
-      - node/install
-      - checkout
-      # install dependencies in both apps
-      - run:
-          name: hello
-          command: |
-            echo "hello-world"
+        - node/install:
+            install-yarn: true
+            node-version: '16.13'
+        - checkout
+        - run:
+            name: npm install back-end
+            command: |
+              npm run backend:install
+        - run:
+            name: back-end build...
+            command: |
+              npm run backend:build
+
+workflows:
+  version: 2
+  exercise_CI:
+    jobs:
+      - one
+      # - two
